@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The HackOHI/O Wall</title>
+<meta name="description" content="Built entirely by pull requests — The Assembly Club Git Workshop at HackOHI/O.">
+<link rel="icon" href="assets/tac.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Silkscreen&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #FAF8F4;
+    --card: #FFFFFF;
+    --ink: #232C3B;
+    --muted: #6B7A90;
+    --slate: #4B6587;
+    --slate-2: #8FA3BF;
+    --line: #D5DCE5;
+    --tint: #EEF1F5;
+    --sand: #E7E1D6;
+    --orange: #F7941D;
+    --orange-ink: #D9730D;
+    --green: #3FA34D;
+    --green-ink: #2E7D3A;
+    --red: #BA0C0C;
+
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    --pixel: "Silkscreen", var(--mono);
+
+    --gutter: clamp(16px, 3vw, 56px);
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: clamp(15px, 1.05vw, 20px);
+    line-height: 1.4;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Header ---------- */
+  .top {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 24px;
+    padding: clamp(20px, 2.4vw, 40px) var(--gutter) 0;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: clamp(12px, 1.4vw, 22px);
+  }
+  .brand img { height: clamp(36px, 2.8vw, 52px); width: auto; display: block; }
+  .brand .x { font-family: var(--pixel); color: var(--slate-2); font-size: 0.9em; }
+  .brand .eyebrow {
+    font-family: var(--pixel);
+    font-size: clamp(11px, 0.75vw, 14px);
+    letter-spacing: 0.04em;
+    color: var(--slate);
+    margin-left: 6px;
+    text-transform: uppercase;
+  }
+  h1 {
+    margin: 0;
+    font-weight: 800;
+    font-size: clamp(34px, 4.2vw, 80px);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+  }
+  .subtitle {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: clamp(15px, 1.25vw, 24px);
+  }
+  .subtitle strong { color: var(--slate); font-weight: 600; }
+
+  .counter {
+    text-align: right;
+    display: grid;
+    justify-items: end;
+    gap: 4px;
+  }
+  .live {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--pixel);
+    font-size: clamp(11px, 0.8vw, 15px);
+    color: var(--green-ink);
+    background: #EBF5EC;
+    border: 1px solid #C9D9CB;
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+  .live i {
+    width: 9px; height: 9px;
+    background: var(--green);
+    display: block;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .live.offline { color: var(--orange-ink); background: #FDF1E3; border-color: #F3D2A8; }
+  .live.offline i { background: var(--orange); }
+  @keyframes pulse { 50% { opacity: 0.25; } }
+  .count {
+    font-family: var(--pixel);
+    font-size: clamp(56px, 6.4vw, 128px);
+    line-height: 0.95;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .count-label {
+    font-weight: 600;
+    color: var(--slate);
+    font-size: clamp(15px, 1.2vw, 22px);
+  }
+
+  /* ---------- Commit graph ---------- */
+  .graph-wrap {
+    padding: clamp(14px, 1.6vw, 26px) var(--gutter) 0;
+  }
+  #graph { display: block; width: 100%; height: 76px; overflow: visible; }
+  #graph .main { stroke: var(--slate); stroke-width: 4; }
+  #graph .tail { stroke: var(--line); stroke-width: 4; stroke-dasharray: 2 8; stroke-linecap: square; }
+  #graph .branch { fill: none; stroke: var(--slate-2); stroke-width: 4; }
+  #graph .node { fill: var(--bg); stroke: var(--slate); stroke-width: 3; }
+  #graph .node.init { stroke: var(--slate-2); }
+  #graph .node.head { fill: var(--green); stroke: var(--green); }
+  #graph .node.pop { transform-box: fill-box; transform-origin: center; animation: pop 0.6s cubic-bezier(.3,1.6,.5,1); }
+  #graph .branch.pop { stroke-dasharray: 400; stroke-dashoffset: 400; animation: draw 0.7s ease-out forwards; }
+  #graph text {
+    font-family: var(--pixel);
+    font-size: 12px;
+    fill: var(--green-ink);
+  }
+  #graph text.init-label { fill: var(--muted); }
+  @keyframes pop { from { transform: scale(0); } }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  /* ---------- Wall ---------- */
+  main {
+    flex: 1;
+    padding: clamp(18px, 2vw, 32px) var(--gutter);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--card-min, 340px)), 1fr));
+    gap: var(--grid-gap, 18px);
+  }
+  .grid.compact { --card-min: 290px; --grid-gap: 14px; }
+  .grid.dense { --card-min: 240px; --grid-gap: 12px; }
+
+  .card {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--sand);
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 1px 2px rgba(35, 44, 59, 0.05), 0 6px 16px -8px rgba(35, 44, 59, 0.12);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto 1fr auto;
+    column-gap: 14px;
+    row-gap: 12px;
+    min-width: 0;
+    animation: enter 0.5s cubic-bezier(.2,.8,.3,1) both;
+    animation-delay: var(--delay, 0ms);
+  }
+  @keyframes enter { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+
+  .card.fresh {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px var(--orange), 0 10px 26px -10px rgba(247, 148, 29, 0.55);
+    animation: enter 0.6s cubic-bezier(.2,.8,.3,1) both, settle 1.2s ease-in 9s forwards;
+  }
+  @keyframes settle {
+    to { border-color: var(--sand); box-shadow: 0 1px 2px rgba(35, 44, 59, 0.05), 0 6px 16px -8px rgba(35, 44, 59, 0.12); }
+  }
+  .card .chip {
+    position: absolute;
+    top: -11px;
+    right: 14px;
+    font-family: var(--pixel);
+    font-size: 11px;
+    line-height: 1;
+    background: var(--orange);
+    color: var(--ink);
+    padding: 5px 7px 4px;
+    border-radius: 3px;
+    animation: fade 1s ease-in 9s forwards;
+  }
+  @keyframes fade { to { opacity: 0; } }
+
+  .avatar {
+    width: var(--avatar, 60px);
+    height: var(--avatar, 60px);
+    border-radius: 8px;
+    background: var(--tint);
+    border: 2px solid var(--line);
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .grid.compact .card { --avatar: 52px; padding: 16px; }
+  .grid.dense .card { --avatar: 44px; padding: 14px; row-gap: 10px; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .avatar .initials {
+    font-family: var(--pixel);
+    color: var(--slate);
+    font-size: calc(var(--avatar, 60px) * 0.36);
+  }
+
+  .who { min-width: 0; align-self: center; }
+  .name {
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .handle {
+    margin-top: 2px;
+    font-family: var(--mono);
+    font-size: 0.82em;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .building {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.95em;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .building .tag {
+    font-family: var(--pixel);
+    font-size: 0.72em;
+    color: var(--slate);
+    margin-right: 6px;
+  }
+  .building.empty { color: var(--muted); font-style: italic; }
+
+  .site {
+    grid-column: 1 / -1;
+    justify-self: start;
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--slate);
+    text-decoration: none;
+    max-width: 100%;
+    display: inline-flex;
+    gap: 6px;
+    align-items: baseline;
+    min-width: 0;
+  }
+  .site .url {
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 0.86em;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .site .label { white-space: nowrap; flex: none; }
+  a.site:hover .label { text-decoration: underline; text-underline-offset: 3px; }
+  .site.none { color: var(--muted); font-weight: 500; }
+
+  /* ---------- Empty state ---------- */
+  .empty-state {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 18px;
+    padding: clamp(32px, 6vh, 96px) 16px;
+    text-align: center;
+  }
+  .empty-state img {
+    width: clamp(120px, 12vw, 220px);
+    image-rendering: pixelated;
+    animation: bob 2.4s ease-in-out infinite;
+  }
+  @keyframes bob { 50% { transform: translateY(-8px); } }
+  .empty-state p {
+    margin: 0;
+    font-family: var(--pixel);
+    font-size: clamp(16px, 1.6vw, 30px);
+    color: var(--slate);
+  }
+  .empty-state p::after {
+    content: "_";
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .empty-state small { color: var(--muted); font-size: clamp(14px, 1vw, 18px); }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 16px var(--gutter);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    font-size: clamp(14px, 1vw, 19px);
+  }
+  .steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+  }
+  .steps strong { color: var(--ink); font-weight: 700; margin-right: 4px; }
+  .steps code {
+    font-family: var(--mono);
+    font-size: 0.92em;
+    background: var(--tint);
+    color: var(--ink);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .steps .arrow { color: var(--slate-2); }
+  .repo {
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--slate);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .repo.placeholder { color: var(--orange-ink); }
+
+  .demo-badge {
+    position: fixed;
+    left: 50%;
+    top: 10px;
+    transform: translateX(-50%);
+    font-family: var(--pixel);
+    font-size: 11px;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 5px 8px;
+    border-radius: 3px;
+    opacity: 0.8;
+  }
+
+  @media (max-width: 720px) {
+    .top { grid-template-columns: 1fr; }
+    .counter { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; text-align: left; }
+    .counter .live { flex-basis: 100%; max-width: max-content; }
+    .brand .eyebrow { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; }
+  }
+</style>
+</head>
+<body>
+  <header class="top">
+    <div>
+      <div class="brand">
+        <img src="assets/tac.png" alt="The Assembly Club">
+        <span class="x">×</span>
+        <img src="assets/hackohio.png" alt="HackOHI/O">
+        <span class="eyebrow">Git Workshop · Oct 24</span>
+      </div>
+      <h1>The HackOHI/O Wall</h1>
+      <p class="subtitle">Built entirely by pull requests — <strong>The Assembly Club</strong> Git Workshop, Oct 24</p>
+    </div>
+    <div class="counter" aria-live="polite">
+      <span class="live" id="status"><i></i><span id="status-text">LIVE</span></span>
+      <span class="count" id="count">0</span>
+      <span class="count-label" id="count-label">hackers shipped</span>
+    </div>
+  </header>
+
+  <div class="graph-wrap" aria-hidden="true">
+    <svg id="graph"></svg>
+  </div>
+
+  <main>
+    <section class="grid" id="wall" aria-label="Attendees"></section>
+    <section class="empty-state" id="empty" hidden>
+      <img src="assets/dino.png" alt="">
+      <p>Waiting for the first pull request…</p>
+      <small>Merged PRs show up here within a minute or so.</small>
+    </section>
+  </main>
+
+  <footer>
+    <div class="steps">
+      <strong>Add yourself:</strong>
+      <code>fork</code><span class="arrow">→</span>
+      <code>add attendees/&lt;username&gt;.json</code><span class="arrow">→</span>
+      <code>open a PR</code>
+    </div>
+    <a class="repo" id="repo"></a>
+  </footer>
+
+<script>
+  const WALL_REPO_URL = "https://github.com/mat43/hackohio-wall";
+  const POLL_MS = 15000;
+
+  const params = new URLSearchParams(location.search);
+  const demo = params.get("demo");
+
+  const $ = (id) => document.getElementById(id);
+  const wall = $("wall");
+  const empty = $("empty");
+  const svg = $("graph");
+  const NS = "http://www.w3.org/2000/svg";
+
+  let people = [];          // newest first
+  let known = null;         // usernames already rendered; null until first load
+  let shownCount = 0;
+  const cards = new Map();  // username → card element
+
+  // ---------- Repo link ----------
+  const repo = $("repo");
+  if (WALL_REPO_URL) {
+    repo.href = WALL_REPO_URL;
+    repo.textContent = WALL_REPO_URL.replace(/^https?:\/\//, "");
+  } else {
+    repo.textContent = "[wall repo URL]";
+    repo.classList.add("placeholder");
+  }
+
+  // ---------- Data ----------
+  function clean(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const username = String(raw.username || "").trim();
+    if (!/^[A-Za-z0-9-]{1,39}$/.test(username)) return null;
+    const name = String(raw.name || "").trim() || username;
+    const building = typeof raw.building === "string" ? raw.building.trim() : "";
+    let site = null;
+    if (typeof raw.site === "string") {
+      try {
+        const u = new URL(raw.site.trim());
+        if (u.protocol === "https:" || u.protocol === "http:") site = u;
+      } catch (_) { /* not a URL: show "site coming soon" */ }
+    }
+    const t = Date.parse(raw.mergedAt);
+    return { username, name, building, site, mergedAt: Number.isNaN(t) ? 0 : t };
+  }
+
+  function sortNewestFirst(list) {
+    return list.sort((a, b) => b.mergedAt - a.mergedAt || a.name.localeCompare(b.name));
+  }
+
+  async function load() {
+    try {
+      const res = await fetch("attendees.json?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      setStatus(true);
+      update(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setStatus(false);
+      if (known === null) update([]);
+    }
+  }
+
+  function setStatus(ok) {
+    $("status").classList.toggle("offline", !ok);
+    $("status-text").textContent = ok ? "LIVE" : "RECONNECTING";
+  }
+
+  function update(rawList) {
+    const seen = new Set();
+    const next = [];
+    for (const raw of rawList) {
+      const p = clean(raw);
+      if (p && !seen.has(p.username.toLowerCase())) {
+        seen.add(p.username.toLowerCase());
+        next.push(p);
+      }
+    }
+    sortNewestFirst(next);
+
+    const firstLoad = known === null;
+    const fresh = new Set();
+    if (!firstLoad) {
+      for (const p of next) if (!known.has(p.username.toLowerCase())) fresh.add(p.username.toLowerCase());
+    }
+    const changed = firstLoad || fresh.size > 0 || next.length !== people.length ||
+      next.some((p, i) => JSON.stringify(p) !== JSON.stringify(people[i]));
+
+    people = next;
+    known = seen;
+    if (changed) render(fresh, firstLoad);
+  }
+
+  // ---------- Rendering ----------
+  function initials(name) {
+    const parts = name.split(/\s+/).filter(Boolean);
+    const s = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2);
+    return s.toUpperCase();
+  }
+
+  function card(p, isFresh, delay) {
+    const el = document.createElement("article");
+    el.className = "card" + (isFresh ? " fresh" : "");
+    el.style.setProperty("--delay", delay + "ms");
+
+    if (isFresh) {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = "just merged";
+      el.append(chip);
+    }
+
+    const av = document.createElement("div");
+    av.className = "avatar";
+    const img = document.createElement("img");
+    img.alt = "";
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    img.src = "https://github.com/" + encodeURIComponent(p.username) + ".png?size=120";
+    img.onerror = () => {
+      const span = document.createElement("span");
+      span.className = "initials";
+      span.textContent = initials(p.name);
+      img.replaceWith(span);
+    };
+    av.append(img);
+
+    const who = document.createElement("div");
+    who.className = "who";
+    const h = document.createElement("h2");
+    h.className = "name";
+    h.textContent = p.name;
+    h.title = p.name;
+    const handle = document.createElement("div");
+    handle.className = "handle";
+    handle.textContent = "@" + p.username;
+    who.append(h, handle);
+
+    const b = document.createElement("p");
+    b.className = "building" + (p.building ? "" : " empty");
+    if (p.building) {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = "Building";
+      b.append(tag, document.createTextNode(p.building));
+      b.title = p.building;
+    } else {
+      b.textContent = "Still deciding what to build";
+    }
+
+    let site;
+    if (p.site) {
+      site = document.createElement("a");
+      site.className = "site";
+      site.href = p.site.href;
+      site.target = "_blank";
+      site.rel = "noopener noreferrer";
+      const label = document.createElement("span");
+      label.className = "label";
+      label.textContent = "View site →";
+      const url = document.createElement("span");
+      url.className = "url";
+      url.textContent = (p.site.host + p.site.pathname).replace(/\/$/, "");
+      site.append(label, url);
+    } else {
+      site = document.createElement("span");
+      site.className = "site none";
+      site.textContent = "Site coming soon";
+    }
+
+    el.append(av, who, b, site);
+    return el;
+  }
+
+  function render(fresh, firstLoad) {
+    const n = people.length;
+    empty.hidden = n > 0;
+    wall.hidden = n === 0;
+    wall.classList.toggle("compact", n > 18 && n <= 40);
+    wall.classList.toggle("dense", n > 40);
+
+    // Keyed update: existing cards stay in the DOM untouched (so a highlight that's
+    // still glowing keeps glowing); new or edited ones are inserted in place.
+    const wanted = new Set();
+    people.forEach((p, i) => {
+      const key = p.username.toLowerCase();
+      const sig = JSON.stringify(p);
+      wanted.add(key);
+      let el = cards.get(key);
+      if (!el || el.dataset.sig !== sig) {
+        const delay = firstLoad ? Math.min(i * 35, 900) : 0;
+        const next = card(p, fresh.has(key), delay);
+        next.dataset.sig = sig;
+        if (el) el.replaceWith(next);
+        el = next;
+        cards.set(key, el);
+      }
+      if (wall.children[i] !== el) wall.insertBefore(el, wall.children[i] || null);
+    });
+    for (const [key, el] of cards) {
+      if (!wanted.has(key)) { el.remove(); cards.delete(key); }
+    }
+
+    drawGraph(fresh.size > 0);
+    countTo(n);
+    $("count-label").textContent = n === 1 ? "hacker shipped" : "hackers shipped";
+  }
+
+  function countTo(target) {
+    const start = shownCount;
+    const t0 = performance.now();
+    const dur = Math.min(900, 120 + Math.abs(target - start) * 40);
+    function step(t) {
+      const k = Math.min(1, (t - t0) / dur);
+      const v = Math.round(start + (target - start) * (1 - Math.pow(1 - k, 3)));
+      $("count").textContent = v;
+      if (k < 1) requestAnimationFrame(step);
+      else shownCount = target;
+    }
+    requestAnimationFrame(step);
+  }
+
+  // Commit graph: one square per merged attendee, oldest → newest, newest in green
+  // with the branch it merged from. Same language as the deck's motif.
+  function drawGraph(animateHead) {
+    const W = svg.clientWidth || 1200;
+    const H = 76;
+    const y = 52;
+    const pad = 12;
+    const chronological = people.slice().reverse();
+    const n = chronological.length;
+
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.replaceChildren();
+
+    const el = (tag, attrs) => {
+      const e = document.createElementNS(NS, tag);
+      for (const k in attrs) e.setAttribute(k, attrs[k]);
+      svg.append(e);
+      return e;
+    };
+
+    const right = W - pad - 60; // leave room for the dashed "what's next" tail
+    const span = right - pad;
+    // Fixed spacing so the line visibly grows as people merge, compressing only when full.
+    const step = n > 0 ? Math.min(44, span / n) : span;
+    const size = Math.max(6, Math.min(16, step * 0.55));
+    const xs = chronological.map((_, i) => pad + step * (i + 1));
+    const lastX = n ? xs[n - 1] : pad;
+
+    el("line", { class: "tail", x1: lastX, y1: y, x2: W - pad, y2: y });
+    el("line", { class: "main", x1: pad, y1: y, x2: lastX, y2: y });
+
+    if (n) {
+      const hx = lastX;
+      const bx = Math.max(pad, hx - 110);
+      const by = y - 34;
+      el("path", {
+        class: "branch" + (animateHead ? " pop" : ""),
+        d: `M ${bx} ${by} C ${bx + (hx - bx) * 0.55} ${by}, ${hx - (hx - bx) * 0.45} ${y}, ${hx} ${y}`,
+      });
+    }
+
+    el("rect", { class: "node init", x: pad - 6, y: y - 6, width: 12, height: 12 });
+    xs.forEach((x, i) => {
+      const head = i === n - 1;
+      const s = head ? Math.max(size, 14) + 4 : size;
+      el("rect", {
+        class: "node" + (head ? " head" : "") + (head && animateHead ? " pop" : ""),
+        x: x - s / 2, y: y - s / 2, width: s, height: s,
+      });
+    });
+
+    if (n) {
+      const label = el("text", { x: lastX, y: y - 42, "text-anchor": "end" });
+      label.textContent = "HEAD → @" + chronological[n - 1].username;
+      const box = label.getBBox();
+      if (box.x < pad) { label.setAttribute("text-anchor", "start"); label.setAttribute("x", pad); }
+    } else {
+      const label = el("text", { class: "init-label", x: pad, y: y - 18 });
+      label.textContent = "Initial commit";
+    }
+  }
+
+  let resizeTimer;
+  addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => drawGraph(false), 120);
+  });
+
+  // ---------- Demo / rehearsal mode ----------
+  // ?demo=30 shows 30 fake attendees, ?demo=live adds one every 3s.
+  const FIRST = ["Alex", "Jordan", "Sam", "Priya", "Wei", "Maria", "Dev", "Chris", "Aisha", "Noah", "Lena", "Omar", "Grace", "Mateo", "Hana", "Ravi", "Zoe", "Kai", "Nia", "Leo"];
+  const LAST = ["Kim", "Patel", "Nguyen", "Garcia", "Okafor", "Smith", "Chen", "Rossi", "Haddad", "Novak", "Silva", "Brooks"];
+  const BUILD = ["A study-group matcher for OSU classes", "Campus dining wait-time tracker", "", "An AI tutor for intro physics", "Parking spot finder for Buckeye game days", "A Discord bot that reminds you to commit", "Something with a Raspberry Pi and a lot of LEDs", "", "Accessibility checker for course websites", "Roommate chore splitter that actually works"];
+
+  const DEMO_T0 = Date.now();
+  function fake(i) {
+    const first = FIRST[i % FIRST.length], last = LAST[(i * 7) % LAST.length];
+    const username = (first + "-" + last + "-demo" + i).toLowerCase();
+    const name = i === 4 ? "Bartholomew Alexander Montgomery-Featherstonehaugh III" : first + " " + last;
+    const building = BUILD[i % BUILD.length] + (i === 6 ? " — plus a companion mobile app, a browser extension, and a very ambitious backend we definitely will not finish by Sunday" : "");
+    const site = i % 5 === 3 ? "not a url" : i % 7 === 2 ? "" : `https://${username}.github.io/hackohio-site`;
+    return { username, name, building, site, mergedAt: new Date(DEMO_T0 + i * 60000).toISOString() };
+  }
+
+  if (demo !== null) {
+    const badge = document.createElement("div");
+    badge.className = "demo-badge";
+    badge.textContent = "demo data";
+    document.body.append(badge);
+
+    if (demo === "live") {
+      let i = 0;
+      update([]);
+      setInterval(() => { if (i < 45) { i++; update(Array.from({ length: i }, (_, k) => fake(k))); } }, 3000);
+    } else {
+      const n = Math.max(0, Math.min(200, parseInt(demo, 10) || 0));
+      update(Array.from({ length: n }, (_, k) => fake(k)));
+    }
+  } else {
+    load();
+    setInterval(load, POLL_MS);
+  }
+</script>
+</body>
+</html>
