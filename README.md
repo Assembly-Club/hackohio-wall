@@ -1,6 +1,6 @@
 # The HackOHI/O Wall
 
-Every name on [the wall](https://mat43.github.io/hackohio-wall/) got there through a pull request.
+Every name on [the wall](https://assembly-club.github.io/hackohio-wall/) got there through a pull request.
 
 ## Add yourself
 
